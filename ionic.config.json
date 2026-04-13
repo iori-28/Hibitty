@@ -1,0 +1,7 @@
+{
+  "name": "hibitty",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
