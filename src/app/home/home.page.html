@@ -1,20 +1,147 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar>
-    <ion-title>
-      Blank
-    </ion-title>
+    <ion-title>Hibitty - Hari Ini</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content class="ion-padding">
+  <ion-card class="summary-card">
+    <ion-card-header>
+      <ion-card-subtitle>Produktivitas & Self-Improvement</ion-card-subtitle>
+      <ion-card-title>Progress Harian</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="summary-grid">
+        <div class="summary-item">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          <h3>{{ completionRateToday }}%</h3>
+          <p>Rate Hari Ini</p>
+        </div>
+        <div class="summary-item">
+          <ion-icon name="stats-chart-outline"></ion-icon>
+          <h3>{{ completionRate7Days }}%</h3>
+          <p>Rate 7 Hari</p>
+        </div>
+        <div class="summary-item">
+          <ion-icon name="flame-outline"></ion-icon>
+          <h3>{{ bestOverallStreak }}</h3>
+          <p>Best Streak</p>
+        </div>
+      </div>
+      <ion-chip color="warning" outline="true">
+        <ion-label>Fokus Completion: {{ focusCompletionRate }}%</ion-label>
+      </ion-chip>
+      <ion-chip
+        [color]="procrastinationRiskLabel === 'High' ? 'danger' : (procrastinationRiskLabel === 'Medium' ? 'warning' : 'success')">
+        <ion-label>Procrastination Risk: {{ procrastinationRiskLabel }}</ion-label>
+      </ion-chip>
+    </ion-card-content>
+  </ion-card>
 
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
-  </div>
+  <ion-button expand="block" (click)="showForm ? toggleForm() : startCreateHabit()">
+    <ion-icon slot="start" name="add-circle-outline"></ion-icon>
+    {{ showForm ? 'Tutup Form Habit' : 'Tambah Habit Baru' }}
+  </ion-button>
+
+  <ion-card *ngIf="showForm" class="form-card">
+    <ion-card-header>
+      <ion-card-title>{{ editingHabitId ? 'Edit Habit' : 'Habit Baru' }}</ion-card-title>
+      <ion-card-subtitle>Pilih kategori dan mode Santai/Fokus</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="stacked">Nama Habit</ion-label>
+        <ion-input [(ngModel)]="draftName" placeholder="Contoh: Belajar 30 menit" maxlength="60"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Tipe Habit</ion-label>
+        <ion-select [(ngModel)]="draftCategory" interface="popover">
+          <ion-select-option *ngFor="let category of categoryOptions" [value]="category">
+            {{ category }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="float">Mode Anti-Procrastination</ion-label>
+        <ion-segment [(ngModel)]="draftMode">
+          <ion-segment-button value="casual">
+            <ion-label>Santai</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="important">
+            <ion-label>Fokus</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Jam Pengingat (opsional)</ion-label>
+        <ion-input [(ngModel)]="draftReminderTime" type="time"></ion-input>
+      </ion-item>
+
+      <div class="form-actions">
+        <ion-button color="medium" fill="outline" (click)="toggleForm()">Batal</ion-button>
+        <ion-button color="primary" (click)="saveHabit()">
+          {{ editingHabitId ? 'Simpan Perubahan' : 'Tambah Habit' }}
+        </ion-button>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-list lines="full" *ngIf="habits.length; else emptyState">
+    <ion-item *ngFor="let habit of habits; trackBy: trackByHabit" class="habit-item">
+      <ion-checkbox slot="start" [checked]="isDoneToday(habit)" [disabled]="isDoneToday(habit)"
+        (ionChange)="onCheckIn(habit, $event.detail.checked)"></ion-checkbox>
+
+      <ion-label>
+        <h2>{{ habit.name }}</h2>
+        <p>
+          <ion-chip color="primary" outline="true">
+            <ion-label>{{ habit.category }}</ion-label>
+          </ion-chip>
+          <ion-chip [color]="getModeColor(habit.mode)">
+            <ion-label>{{ getModeLabel(habit.mode) }}</ion-label>
+          </ion-chip>
+        </p>
+        <p class="meta-row">
+          <ion-icon name="flame-outline"></ion-icon>
+          <span>Streak: {{ habit.currentStreak }}</span>
+          <ion-icon name="trophy-outline"></ion-icon>
+          <span>Best: {{ habit.bestStreak }}</span>
+          <ion-icon *ngIf="habit.reminderTime" name="alarm-outline"></ion-icon>
+          <span *ngIf="habit.reminderTime">{{ habit.reminderTime }}</span>
+          <ion-badge *ngIf="habit.mode === 'important'"
+            [color]="getRiskLevel(habit) === 'high' ? 'danger' : (getRiskLevel(habit) === 'medium' ? 'warning' : 'success')">
+            {{ getRiskLabel(habit) }}
+          </ion-badge>
+        </p>
+        <ion-note color="warning" *ngIf="shouldShowReminder(habit)">
+          Pengingat: waktunya kerjakan habit ini.
+        </ion-note>
+        <ion-note color="danger" *ngIf="habit.mode === 'important' && !isDoneToday(habit)">
+          {{ getRescuePrompt(habit) }}
+        </ion-note>
+      </ion-label>
+
+      <div class="item-actions">
+        <ion-button fill="clear" color="medium" (click)="startEditHabit(habit)">
+          <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+        </ion-button>
+        <ion-button fill="clear" color="danger" (click)="deleteHabit(habit)">
+          <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+        </ion-button>
+      </div>
+    </ion-item>
+  </ion-list>
+
+  <ng-template #emptyState>
+    <ion-card>
+      <ion-card-content>
+        <h3>Belum ada habit.</h3>
+        <p>Tambah habit pertama kamu untuk mulai bangun konsistensi harian.</p>
+      </ion-card-content>
+    </ion-card>
+  </ng-template>
+
 </ion-content>
