@@ -1,147 +1,254 @@
 <ion-header>
-  <ion-toolbar>
-    <ion-title>Hibitty - Hari Ini</ion-title>
-  </ion-toolbar>
+    <ion-toolbar>
+        <ion-title>Hibitty</ion-title>
+    </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <ion-card class="summary-card">
-    <ion-card-header>
-      <ion-card-subtitle>Produktivitas & Self-Improvement</ion-card-subtitle>
-      <ion-card-title>Progress Harian</ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <div class="summary-grid">
-        <div class="summary-item">
-          <ion-icon name="checkmark-circle-outline"></ion-icon>
-          <h3>{{ completionRateToday }}%</h3>
-          <p>Rate Hari Ini</p>
-        </div>
-        <div class="summary-item">
-          <ion-icon name="stats-chart-outline"></ion-icon>
-          <h3>{{ completionRate7Days }}%</h3>
-          <p>Rate 7 Hari</p>
-        </div>
-        <div class="summary-item">
-          <ion-icon name="flame-outline"></ion-icon>
-          <h3>{{ bestOverallStreak }}</h3>
-          <p>Best Streak</p>
-        </div>
-      </div>
-      <ion-chip color="warning" outline="true">
-        <ion-label>Fokus Completion: {{ focusCompletionRate }}%</ion-label>
-      </ion-chip>
-      <ion-chip
-        [color]="procrastinationRiskLabel === 'High' ? 'danger' : (procrastinationRiskLabel === 'Medium' ? 'warning' : 'success')">
-        <ion-label>Procrastination Risk: {{ procrastinationRiskLabel }}</ion-label>
-      </ion-chip>
-    </ion-card-content>
-  </ion-card>
+<ion-content class="ion-padding main-content">
+    <section *ngIf="activeTab === 'home'">
+        <ion-card class="streak-hero">
+            <ion-card-content>
+                <div class="hero-row">
+                    <div>
+                        <p class="hero-label">Streak Kamu</p>
+                        <h2>{{ currentStreakSummary }} Hari</h2>
+                        <p class="hero-sub">Consistency Beat Perfection.</p>
+                    </div>
+                    <ion-icon name="flame-outline"></ion-icon>
+                </div>
+                <div class="hero-stats">
+                    <span>Hari Ini: {{ completionRateToday }}%</span>
+                    <span>7 Hari: {{ completionRate7Days }}%</span>
+                    <span>Bulan: {{ monthCompletionRate }}%</span>
+                </div>
+            </ion-card-content>
+        </ion-card>
 
-  <ion-button expand="block" (click)="showForm ? toggleForm() : startCreateHabit()">
-    <ion-icon slot="start" name="add-circle-outline"></ion-icon>
-    {{ showForm ? 'Tutup Form Habit' : 'Tambah Habit Baru' }}
-  </ion-button>
+        <ion-list lines="none" *ngIf="habits.length; else emptyState">
+            <ion-item *ngFor="let habit of habits; trackBy: trackByHabit" class="habit-item"
+                [style.--habit-accent]="getCategoryAccent(habit.category)">
+                <ion-checkbox slot="start" [checked]="isDoneToday(habit)" [disabled]="isDoneToday(habit)"
+                    (ionChange)="onCheckIn(habit, $event.detail.checked)"></ion-checkbox>
 
-  <ion-card *ngIf="showForm" class="form-card">
-    <ion-card-header>
-      <ion-card-title>{{ editingHabitId ? 'Edit Habit' : 'Habit Baru' }}</ion-card-title>
-      <ion-card-subtitle>Pilih kategori dan mode Santai/Fokus</ion-card-subtitle>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-item>
-        <ion-label position="stacked">Nama Habit</ion-label>
-        <ion-input [(ngModel)]="draftName" placeholder="Contoh: Belajar 30 menit" maxlength="60"></ion-input>
-      </ion-item>
+                <ion-label>
+                    <h3>{{ habit.name }}</h3>
+                    <p class="chip-row">
+                        <ion-chip class="category-chip" outline="true">
+                            <ion-label>{{ habit.category }}</ion-label>
+                        </ion-chip>
+                        <ion-chip *ngIf="habit.reminderTime" class="time-chip">
+                            <ion-icon name="alarm-outline"></ion-icon>
+                            <ion-label>{{ habit.reminderTime }}</ion-label>
+                        </ion-chip>
+                    </p>
+                    <p class="meta-row">
+                        <ion-icon name="flame-outline"></ion-icon>
+                        <span>Streak {{ getActiveStreak(habit) }}</span>
+                        <ion-icon name="trophy-outline"></ion-icon>
+                        <span>Best {{ habit.bestStreak }}</span>
+                        <ion-badge>{{ getMonthCount(habit, selectedMonth) }} ceklis</ion-badge>
+                    </p>
+                    <p class="checkin-time" *ngIf="isDoneToday(habit)">
+                        Dicentang jam {{ getTodayCheckinTimeLabel(habit) }}
+                    </p>
+                    <p class="missed-inline" *ngIf="isMissedTargetTime(habit)">
+                        Terlewat dari jam target, tapi masih bisa dicentang hari ini.
+                    </p>
+                    <p class="reminder-inline" *ngIf="shouldShowReminder(habit)">Saatnya kerjakan habit ini.</p>
+                </ion-label>
 
-      <ion-item>
-        <ion-label position="stacked">Tipe Habit</ion-label>
-        <ion-select [(ngModel)]="draftCategory" interface="popover">
-          <ion-select-option *ngFor="let category of categoryOptions" [value]="category">
-            {{ category }}
-          </ion-select-option>
-        </ion-select>
-      </ion-item>
+                <div class="item-actions">
+                    <ion-button fill="clear" color="medium" (click)="startEditHabit(habit)">
+                        <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+                    </ion-button>
+                    <ion-button fill="clear" color="danger" (click)="deleteHabit(habit)">
+                        <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+                    </ion-button>
+                </div>
+            </ion-item>
+        </ion-list>
+    </section>
 
-      <ion-item>
-        <ion-label position="float">Mode Anti-Procrastination</ion-label>
-        <ion-segment [(ngModel)]="draftMode">
-          <ion-segment-button value="casual">
-            <ion-label>Santai</ion-label>
-          </ion-segment-button>
-          <ion-segment-button value="important">
-            <ion-label>Fokus</ion-label>
-          </ion-segment-button>
-        </ion-segment>
-      </ion-item>
+    <section *ngIf="activeTab === 'add'">
+        <ion-card class="form-card">
+            <ion-card-header>
+                <ion-card-title>{{ editingHabitId ? 'Edit Habit' : 'Tambah Habit Baru' }}</ion-card-title>
+                <ion-card-subtitle>Isi detail habit kamu supaya jelas kapan harus dikerjakan.</ion-card-subtitle>
+            </ion-card-header>
+            <ion-card-content>
+                <p class="panel-note">Buat habit simpel, lalu ceklis harian di Home.</p>
+                <p class="form-help">Nama habit wajib diisi, tidak boleh duplikat, dan jam default mulai dari 00:00.</p>
+                <p class="form-error" *ngIf="formError">{{ formError }}</p>
 
-      <ion-item>
-        <ion-label position="stacked">Jam Pengingat (opsional)</ion-label>
-        <ion-input [(ngModel)]="draftReminderTime" type="time"></ion-input>
-      </ion-item>
+                <ion-item>
+                    <ion-label position="stacked">Nama Habit</ion-label>
+                    <ion-input [(ngModel)]="draftName" placeholder="Contoh: Baca buku 20 menit"
+                        maxlength="60"></ion-input>
+                </ion-item>
 
-      <div class="form-actions">
-        <ion-button color="medium" fill="outline" (click)="toggleForm()">Batal</ion-button>
-        <ion-button color="primary" (click)="saveHabit()">
-          {{ editingHabitId ? 'Simpan Perubahan' : 'Tambah Habit' }}
-        </ion-button>
-      </div>
-    </ion-card-content>
-  </ion-card>
+                <ion-item>
+                    <ion-label position="stacked">Kategori Habit</ion-label>
+                    <ion-select [(ngModel)]="draftCategory" interface="popover">
+                        <ion-select-option *ngFor="let category of categoryOptions" [value]="category">
+                            {{ category }}
+                        </ion-select-option>
+                    </ion-select>
+                </ion-item>
 
-  <ion-list lines="full" *ngIf="habits.length; else emptyState">
-    <ion-item *ngFor="let habit of habits; trackBy: trackByHabit" class="habit-item">
-      <ion-checkbox slot="start" [checked]="isDoneToday(habit)" [disabled]="isDoneToday(habit)"
-        (ionChange)="onCheckIn(habit, $event.detail.checked)"></ion-checkbox>
+                <ion-item>
+                    <ion-label position="stacked">Jam Habit</ion-label>
+                    <ion-input [(ngModel)]="draftReminderTime" type="time"></ion-input>
+                </ion-item>
 
-      <ion-label>
-        <h2>{{ habit.name }}</h2>
-        <p>
-          <ion-chip color="primary" outline="true">
-            <ion-label>{{ habit.category }}</ion-label>
-          </ion-chip>
-          <ion-chip [color]="getModeColor(habit.mode)">
-            <ion-label>{{ getModeLabel(habit.mode) }}</ion-label>
-          </ion-chip>
-        </p>
-        <p class="meta-row">
-          <ion-icon name="flame-outline"></ion-icon>
-          <span>Streak: {{ habit.currentStreak }}</span>
-          <ion-icon name="trophy-outline"></ion-icon>
-          <span>Best: {{ habit.bestStreak }}</span>
-          <ion-icon *ngIf="habit.reminderTime" name="alarm-outline"></ion-icon>
-          <span *ngIf="habit.reminderTime">{{ habit.reminderTime }}</span>
-          <ion-badge *ngIf="habit.mode === 'important'"
-            [color]="getRiskLevel(habit) === 'high' ? 'danger' : (getRiskLevel(habit) === 'medium' ? 'warning' : 'success')">
-            {{ getRiskLabel(habit) }}
-          </ion-badge>
-        </p>
-        <ion-note color="warning" *ngIf="shouldShowReminder(habit)">
-          Pengingat: waktunya kerjakan habit ini.
-        </ion-note>
-        <ion-note color="danger" *ngIf="habit.mode === 'important' && !isDoneToday(habit)">
-          {{ getRescuePrompt(habit) }}
-        </ion-note>
-      </ion-label>
+                <div class="form-actions">
+                    <ion-button fill="outline" color="medium" (click)="cancelAddHabit()">Batal</ion-button>
+                    <ion-button class="warm-btn" (click)="saveHabit()">
+                        <ion-icon slot="start" name="add-circle-outline"></ion-icon>
+                        {{ editingHabitId ? 'Simpan' : 'Tambah Habit' }}
+                    </ion-button>
+                </div>
+            </ion-card-content>
+        </ion-card>
+    </section>
 
-      <div class="item-actions">
-        <ion-button fill="clear" color="medium" (click)="startEditHabit(habit)">
-          <ion-icon slot="icon-only" name="create-outline"></ion-icon>
-        </ion-button>
-        <ion-button fill="clear" color="danger" (click)="deleteHabit(habit)">
-          <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
-        </ion-button>
-      </div>
-    </ion-item>
-  </ion-list>
+    <section *ngIf="activeTab === 'tracker'">
+        <ion-card class="tracker-note-card">
+            <ion-card-content>
+                <p class="panel-note">Pantau Progres Habit.</p>
+            </ion-card-content>
+        </ion-card>
 
-  <ng-template #emptyState>
-    <ion-card>
-      <ion-card-content>
-        <h3>Belum ada habit.</h3>
-        <p>Tambah habit pertama kamu untuk mulai bangun konsistensi harian.</p>
-      </ion-card-content>
-    </ion-card>
-  </ng-template>
+        <ion-card class="summary-card">
+            <ion-card-header>
+                <ion-card-subtitle>Ringkasan Statistik</ion-card-subtitle>
+                <ion-card-title>Progress Tracker</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <ion-icon name="checkmark-circle-outline"></ion-icon>
+                        <h3>{{ completionRateToday }}%</h3>
+                        <p>Hari Ini</p>
+                    </div>
+                    <div class="summary-item">
+                        <ion-icon name="stats-chart-outline"></ion-icon>
+                        <h3>{{ monthCompletionRate }}%</h3>
+                        <p>Bulan Ini</p>
+                    </div>
+                    <div class="summary-item">
+                        <ion-icon name="trophy-outline"></ion-icon>
+                        <h3>{{ bestOverallStreak }}</h3>
+                        <p>Best Streak</p>
+                    </div>
+                </div>
+            </ion-card-content>
+        </ion-card>
 
+        <ion-card *ngIf="habits.length" class="journal-card">
+            <ion-card-header>
+                <ion-card-title>Jurnal Bulanan</ion-card-title>
+                <ion-card-subtitle>Ceklis harian versi tabel</ion-card-subtitle>
+            </ion-card-header>
+            <ion-card-content>
+                <ion-item class="month-filter" lines="none">
+                    <ion-label>Periode</ion-label>
+                    <ion-select [(ngModel)]="selectedMonth" interface="popover">
+                        <ion-select-option *ngFor="let month of monthOptions" [value]="month">{{ month
+                            }}</ion-select-option>
+                    </ion-select>
+                </ion-item>
+
+                <div class="journal-table-wrap">
+                    <table class="journal-table">
+                        <thead>
+                            <tr>
+                                <th>Habit</th>
+                                <th *ngFor="let day of daysInSelectedMonth">{{ day.day }}</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let habit of habits; trackBy: trackByHabit">
+                                <td class="habit-col">{{ habit.name }}</td>
+                                <td *ngFor="let day of daysInSelectedMonth"
+                                    [class.done-cell]="isDoneOnDate(habit, day.key)">
+                                    <span>{{ isDoneOnDate(habit, day.key) ? 'x' : '' }}</span>
+                                </td>
+                                <td class="total-col">{{ getMonthCount(habit, selectedMonth) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </ion-card-content>
+        </ion-card>
+
+        <ion-card *ngIf="habits.length" class="chart-card">
+            <ion-card-header>
+                <ion-card-title>Monitoring Habit</ion-card-title>
+                <ion-card-subtitle>Total ceklis tiap habit di {{ selectedMonthLabel }} berdasarkan
+                    kategori</ion-card-subtitle>
+            </ion-card-header>
+            <ion-card-content>
+                <ion-item class="month-filter" lines="none">
+                    <ion-label>Bulan Monitoring</ion-label>
+                    <ion-select [(ngModel)]="selectedMonth" interface="popover">
+                        <ion-select-option *ngFor="let month of monthOptions" [value]="month">{{ month
+                            }}</ion-select-option>
+                    </ion-select>
+                </ion-item>
+
+                <div class="chart-wrap" [class.chart-scroll]="shouldEnableChartScroll">
+                    <svg class="chart-canvas" [style.width.px]="monthlyChartWidth" [attr.viewBox]="monthlyChartViewBox"
+                        preserveAspectRatio="none" role="img" aria-label="Diagram batang bulanan">
+                        <rect x="0" y="0" [attr.width]="monthlyChartWidth" height="190" rx="14"></rect>
+                        <line class="chart-axis" x1="20" y1="172" [attr.x2]="monthlyChartWidth - 20"></line>
+
+                        <g *ngFor="let bar of monthlyBarData; trackBy: trackByMonthlyBar">
+                            <rect class="bar-rect" [attr.x]="bar.x" [attr.y]="bar.y" [attr.width]="bar.width"
+                                [attr.height]="bar.height" [attr.fill]="bar.color" rx="6"
+                                (click)="onSelectMonthlyBar(bar.id)"></rect>
+                            <text class="bar-value" [attr.x]="bar.topX" [attr.y]="bar.topY - 6">{{ bar.count }}</text>
+                            <text class="bar-label" [attr.x]="bar.topX" y="184" (click)="onSelectMonthlyBar(bar.id)">{{
+                                bar.shortLabel }}</text>
+                        </g>
+
+                        <polyline class="trend-line" [attr.points]="monthlyTrendPoints"></polyline>
+                        <circle class="trend-dot" *ngFor="let bar of monthlyBarData; trackBy: trackByMonthlyBar"
+                            [attr.cx]="bar.topX" [attr.cy]="bar.topY" r="3" (click)="onSelectMonthlyBar(bar.id)">
+                        </circle>
+                    </svg>
+                </div>
+                <p class="bar-tooltip" *ngIf="selectedMonthlyBarLabel">{{ selectedMonthlyBarLabel }}</p>
+                <div class="legend-list">
+                    <span class="legend-item" *ngFor="let label of monthlyPointLabels">{{ label }}</span>
+                </div>
+            </ion-card-content>
+        </ion-card>
+    </section>
+
+    <ng-template #emptyState>
+        <ion-card>
+            <ion-card-content>
+                <h3>Belum ada habit.</h3>
+                <p>Buka menu Add Habit di bawah untuk menambahkan habit pertama kamu.</p>
+            </ion-card-content>
+        </ion-card>
+    </ng-template>
 </ion-content>
+
+<ion-footer>
+    <ion-toolbar class="bottom-nav">
+        <ion-button fill="clear" [class.active-tab]="activeTab === 'home'" (click)="setTab('home')">
+            <ion-icon slot="start" name="home-outline"></ion-icon>
+            Home
+        </ion-button>
+        <ion-button fill="clear" [class.active-tab]="activeTab === 'add'" (click)="setTab('add')">
+            <ion-icon slot="start" name="add-circle-outline"></ion-icon>
+            Add Habit
+        </ion-button>
+        <ion-button fill="clear" [class.active-tab]="activeTab === 'tracker'" (click)="setTab('tracker')">
+            <ion-icon slot="start" name="stats-chart-outline"></ion-icon>
+            Tracker
+        </ion-button>
+    </ion-toolbar>
+</ion-footer>
