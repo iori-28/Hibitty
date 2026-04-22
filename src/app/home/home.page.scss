@@ -25,7 +25,7 @@ ion-title,
 ion-card-title,
 h2,
 h3 {
-    color: var(--brown-ink);
+    color: var(--soft-cocoa);
 }
 
 ion-label,
@@ -54,6 +54,34 @@ ion-select {
 .streak-hero {
     background: linear-gradient(135deg, #f0dbc2 0%, #e5c4a1 100%);
     margin-bottom: 12px;
+}
+
+.hero-user {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.hero-greeting {
+    margin: 0;
+    font-weight: 700;
+    color: #5a3f2d;
+}
+
+.profile-edit-item {
+    --background: rgba(255, 247, 236, 0.9);
+    --highlight-color-focused: #9b6b47;
+    --border-color: rgba(123, 92, 72, 0.2);
+    margin-bottom: 8px;
+}
+
+.profile-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 4px;
 }
 
 .hero-row {
@@ -89,21 +117,58 @@ ion-select {
     padding: 4px 10px;
 }
 
-.habit-item {
-    --padding-start: 10px;
-    --inner-padding-end: 2px;
-    --background: linear-gradient(90deg, var(--habit-accent, #8b6b56) 0 9px, #fff8ef 9px 100%);
-    --border-color: transparent;
-    --inner-border-width: 0;
-    --border-width: 0;
-    --highlight-height: 0;
-    border: 0;
+.reminder-status-card {
+    margin-top: 0;
+    margin-bottom: 12px;
 }
 
-.habit-item::part(native) {
-    border: 0 !important;
+.due-reminders {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.reminder-pill {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 999px;
+    border: 1px solid rgba(123, 92, 72, 0.22);
+    background: #f8ecdc;
+    font-size: 12px;
+    color: #5c4535;
+}
+
+.habit-list {
+    display: grid;
+    gap: 10px;
+}
+
+.habit-item {
+    margin: 0;
+    background: linear-gradient(90deg, var(--habit-accent, #8b6b56) 0 9px, #fff8ef 9px 100%);
+    border: 1px solid rgba(123, 92, 72, 0.16);
     border-radius: 16px;
-    box-shadow: 0 6px 14px rgba(92, 69, 53, 0.14);
+    overflow: hidden;
+    box-shadow: 0 6px 14px rgba(92, 69, 53, 0.12);
+}
+
+.habit-item ion-card-content {
+    padding: 10px;
+}
+
+.habit-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.habit-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.habit-row ion-checkbox {
+    margin-top: 2px;
 }
 
 .habit-item h3 {
@@ -127,7 +192,7 @@ ion-select {
 }
 
 .time-chip {
-    --background: #836031;
+    --background: #e5c4a1 100%;
 }
 
 .meta-row {
@@ -352,6 +417,7 @@ svg rect {
 .item-actions {
     display: flex;
     align-items: center;
+    flex-direction: column;
 }
 
 .bottom-nav {

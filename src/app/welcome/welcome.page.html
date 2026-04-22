@@ -1,0 +1,48 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Welcome to Hibitty</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ion-card class="welcome-hero">
+    <ion-card-header>
+      <ion-card-subtitle>Habit Tracker Offline</ion-card-subtitle>
+      <ion-card-title>Bangun kebiasaan kecil, progres besar</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <p>
+        Hibitty membantu dalam mencatat habit dan memantau progres habit kamu, dan ada fitur streak nya loh.
+      </p>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Privasi Kamu</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <p>App ini tidak pakai login, data habit disimpan lokal di perangkat kamu.</p>
+      <ion-note>Jika aplikasi dihapus, data lokal bisa ikut hilang.</ion-note>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Nama Panggilan</ion-card-title>
+      <ion-card-subtitle>Untuk app bisa menyapa kamu secara personal.</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-input label="Nama" labelPlacement="floating" [(ngModel)]="displayName" maxlength="30"
+          placeholder="Contoh: TDR3000"></ion-input>
+      </ion-item>
+      <p class="error-text" *ngIf="formError">{{ formError }}</p>
+
+      <div class="cta-group">
+        <ion-button class="warm-btn" expand="block" (click)="startTutorial()">Lihat Tutorial</ion-button>
+        <ion-button fill="outline" color="medium" expand="block" (click)="exploreNow()">Eksplore Sendiri</ion-button>
+      </div>
+    </ion-card-content>
+  </ion-card>
+</ion-content>
