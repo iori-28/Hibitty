@@ -1,0 +1,42 @@
+:host {
+    --tutorial-ink: #4c3728;
+}
+
+ion-content {
+    --background: radial-gradient(circle at top right, #fff8f0 0%, #f8f1e7 58%, #efe2d1 100%);
+}
+
+.tutorial-card {
+    border-radius: 16px;
+    border: 1px solid rgba(122, 92, 71, 0.18);
+    background: rgba(255, 251, 245, 0.96);
+}
+
+ion-card-title {
+    color: var(--tutorial-ink);
+}
+
+p {
+    color: #5f4836;
+}
+
+.step-indicator {
+    margin-top: 12px;
+    padding: 7px 10px;
+    border-radius: 10px;
+    background: #f2e2d1;
+    font-size: 12px;
+}
+
+.actions {
+    margin-top: 14px;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.warm-btn {
+    --background: #9b6b47;
+    --background-activated: #83563a;
+    --color: #fff8ef;
+}

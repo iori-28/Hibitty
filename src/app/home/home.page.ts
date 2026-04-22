@@ -18,7 +18,6 @@ import {
     IonInput,
     IonItem,
     IonLabel,
-    IonList,
     IonSelect,
     IonSelectOption,
     IonTitle,
@@ -51,6 +50,10 @@ interface Habit {
     currentStreak: number;
     bestStreak: number;
     createdAt: string;
+}
+
+interface LocalProfile {
+    displayName: string;
 }
 
 interface DayCell {
@@ -92,7 +95,6 @@ interface MonthlyBarData {
         IonCardContent,
         IonButton,
         IonIcon,
-        IonList,
         IonItem,
         IonLabel,
         IonChip,
@@ -105,8 +107,10 @@ interface MonthlyBarData {
 })
 export class HomePage {
     private readonly storageKey = 'hibitty.habits.v2';
+    private readonly profileKey = 'hibitty.profile.v1';
     private readonly monthlyChartMinWidth = 360;
     private readonly monthlyChartHeight = 190;
+    private notificationPermissionGranted = false;
 
     readonly categoryOptions = [
         'Belajar',
@@ -132,6 +136,11 @@ export class HomePage {
     selectedYear = new Date().getFullYear();
     selectedYearlyHabitId: string | null = null;
     selectedMonthlyBarId: string | null = null;
+    displayName = 'Teman';
+    draftDisplayName = '';
+    isEditingDisplayName = false;
+    profileError = '';
+    notificationInfo = '';
 
     constructor() {
         addIcons({
@@ -146,6 +155,7 @@ export class HomePage {
             homeOutline,
         });
 
+        this.loadProfile();
         this.loadHabits();
         this.syncFiltersWithData();
         void this.initNotifications();
@@ -204,11 +214,31 @@ export class HomePage {
     }
 
     get currentStreakSummary(): number {
-        if (!this.habits.length) {
+        const days = this.getGlobalCheckinDays();
+        if (!days.length) {
             return 0;
         }
 
-        return Math.max(...this.habits.map((habit) => this.getActiveStreak(habit)));
+        const latest = days[days.length - 1];
+        if (this.daysBetween(latest, this.todayKey()) > 1) {
+            return 0;
+        }
+
+        let current = 1;
+        for (let i = days.length - 1; i > 0; i -= 1) {
+            const gap = this.daysBetween(days[i - 1], days[i]);
+            if (gap === 1) {
+                current += 1;
+            } else {
+                break;
+            }
+        }
+
+        return current;
+    }
+
+    get dueReminderHabits(): Habit[] {
+        return this.habits.filter((habit) => this.shouldShowReminder(habit));
     }
 
     get monthOptions(): string[] {
@@ -572,6 +602,36 @@ export class HomePage {
         this.selectedMonthlyBarId = this.selectedMonthlyBarId === barId ? null : barId;
     }
 
+    startEditDisplayName(): void {
+        this.isEditingDisplayName = true;
+        this.draftDisplayName = this.displayName;
+        this.profileError = '';
+    }
+
+    cancelEditDisplayName(): void {
+        this.isEditingDisplayName = false;
+        this.draftDisplayName = this.displayName;
+        this.profileError = '';
+    }
+
+    saveDisplayName(): void {
+        const trimmed = this.draftDisplayName.trim();
+        if (!trimmed) {
+            this.profileError = 'Nama panggilan tidak boleh kosong.';
+            return;
+        }
+
+        this.displayName = trimmed;
+        this.isEditingDisplayName = false;
+        this.profileError = '';
+        localStorage.setItem(
+            this.profileKey,
+            JSON.stringify({
+                displayName: trimmed,
+            }),
+        );
+    }
+
     private syncFiltersWithData(): void {
         const months = this.monthOptions;
         if (!months.includes(this.selectedMonth)) {
@@ -619,6 +679,36 @@ export class HomePage {
         } catch {
             this.habits = [];
         }
+    }
+
+    private loadProfile(): void {
+        const raw = localStorage.getItem(this.profileKey);
+        if (!raw) {
+            this.displayName = 'Teman';
+            this.draftDisplayName = this.displayName;
+            return;
+        }
+
+        try {
+            const parsed = JSON.parse(raw) as LocalProfile;
+            const trimmed = parsed.displayName?.trim();
+            this.displayName = trimmed || 'Teman';
+        } catch {
+            this.displayName = 'Teman';
+        }
+
+        this.draftDisplayName = this.displayName;
+    }
+
+    private getGlobalCheckinDays(): string[] {
+        const set = new Set<string>();
+        for (const habit of this.habits) {
+            for (const day of habit.history) {
+                set.add(day);
+            }
+        }
+
+        return [...set].sort();
     }
 
     private persistHabits(): void {
@@ -786,22 +876,36 @@ export class HomePage {
 
     private async initNotifications(): Promise<void> {
         if (!this.isNativePlatform()) {
+            this.notificationInfo = 'Mode web aktif: notifikasi sistem belum tersedia, pakai reminder in-app.';
             return;
         }
 
         try {
             const permissions = await LocalNotifications.checkPermissions();
-            if (permissions.display !== 'granted') {
-                await LocalNotifications.requestPermissions();
+            let displayPermission = permissions.display;
+            if (displayPermission !== 'granted') {
+                const requested = await LocalNotifications.requestPermissions();
+                displayPermission = requested.display;
             }
+
+            this.notificationPermissionGranted = displayPermission === 'granted';
+            this.notificationInfo = this.notificationPermissionGranted
+                ? 'Notifikasi perangkat aktif. Reminder harian berjalan otomatis.'
+                : 'Izin notifikasi belum aktif. Aktifkan izin notifikasi agar reminder muncul di perangkat.';
+
             await this.syncLocalNotifications();
         } catch {
             // Keep app usable if notifications fail.
+            this.notificationInfo = 'Gagal mengaktifkan notifikasi perangkat, reminder in-app tetap jalan.';
         }
     }
 
     private async syncLocalNotifications(): Promise<void> {
         if (!this.isNativePlatform()) {
+            return;
+        }
+
+        if (!this.notificationPermissionGranted) {
             return;
         }
 
