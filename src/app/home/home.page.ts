@@ -111,6 +111,7 @@ export class HomePage {
     private readonly monthlyChartMinWidth = 360;
     private readonly monthlyChartHeight = 190;
     private notificationPermissionGranted = false;
+    private exactAlarmGranted = true;
 
     readonly categoryOptions = [
         'Belajar',
@@ -890,7 +891,7 @@ export class HomePage {
 
             this.notificationPermissionGranted = displayPermission === 'granted';
             this.notificationInfo = this.notificationPermissionGranted
-                ? 'Notifikasi perangkat aktif. Reminder harian berjalan otomatis.'
+                ? 'Notifikasi perangkat aktif. Menyinkronkan reminder harian...'
                 : 'Izin notifikasi belum aktif. Aktifkan izin notifikasi agar reminder muncul di perangkat.';
 
             await this.syncLocalNotifications();
@@ -910,6 +911,8 @@ export class HomePage {
         }
 
         try {
+            this.exactAlarmGranted = await this.canUseExactAlarm();
+
             const pending = await LocalNotifications.getPending();
             if (pending.notifications.length) {
                 await LocalNotifications.cancel({
@@ -931,6 +934,7 @@ export class HomePage {
                                 minute,
                             },
                             repeats: true,
+                            allowWhileIdle: true,
                         },
                     };
                 });
@@ -938,8 +942,27 @@ export class HomePage {
             if (notifications.length) {
                 await LocalNotifications.schedule({ notifications });
             }
+
+            this.notificationInfo = this.exactAlarmGranted
+                ? 'Notifikasi perangkat aktif. Reminder akan tetap dijadwalkan walau app ditutup.'
+                : 'Notifikasi aktif, tapi mode tepat waktu Android belum aktif. Buka setting Alarm & Reminder untuk hasil paling stabil saat app ditutup.';
         } catch {
             // Ignore scheduling issues for unsupported environments.
+            this.notificationInfo = 'Sinkronisasi notifikasi gagal. Coba buka app lagi untuk menjadwalkan ulang reminder.';
+        }
+    }
+
+    private async canUseExactAlarm(): Promise<boolean> {
+        if (Capacitor.getPlatform() !== 'android') {
+            return true;
+        }
+
+        try {
+            const status = await LocalNotifications.checkExactNotificationSetting();
+            return status.exact_alarm === 'granted';
+        } catch {
+            // Treat unsupported platforms/devices as allowed.
+            return true;
         }
     }
 
